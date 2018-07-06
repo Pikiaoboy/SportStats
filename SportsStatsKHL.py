@@ -17,7 +17,14 @@ season_url = "http://www.sportstats.com"
 # sport="Australian Rules"
 
 #Set output location
-base_file = "C:\\Temp\\Results\\SportsStats\\"
+base_file = "C:\\Temp\\Results\\SportStats\\"
+DB_KHL=base_file+"DB_KHL.csv"
+
+#Initialise file
+with open(DB_KHL,'w') as f:
+    f.write("Date,Home Team, Away Team, Result,Total,\n")
+
+
 
 #function to change pages
 def next_page(page_number):
@@ -54,32 +61,34 @@ page_links=soup.find("div",class_="table-paging").find_all("a")
 season_links=soup.find("div",class_="season stages").find_all("a")
 
 #results loop would start here
-game_dates = match_soup.find_all("tr",class_="table-league-header")
-match_group_stats = match_soup.find_all("tbody")
 
-for i in range(0,len(match_group_stats)-1):
-    game_date=game_dates[i]
-    match_stats = match_group_stats[i]
-    home_teams=match_stats.find_all("td", class_="table-home")
-    away_teams=match_stats.find_all("td", class_="table-away")
-    results_teams=match_stats.find_all("td", class_="result-neutral")
-    for i in range(0,len(home_teams)-1):
-        print(game_date.th.span.text.strip()+","+home_teams[i].text+","+results_teams[i].text+","+away_teams[i].text)
-
-
-#results loop will end here
+# # # #season loop
+# # # for season_num in range(1, season_link_total):
+# # #     #loop for seasons
+# # #     print("Season "+str(season_num)+" loading")
 
 #page loop
-# for page_num in range (1, page_link_total):
-#     #Loop for pages
-#     print("Page " + str(page_num) + " loaded")
-#     next_page(page_num)
+for page_num in range (1, page_link_total):
+    #Loop for pages
+    print("Page " + str(page_num) + " loaded")
+    game_dates = match_soup.find_all("tr",class_="table-league-header")
+    match_group_stats = match_soup.find_all("tbody")
 
-# #season loop
-# for season_num in range(1, season_link_total):
-#     #loop for seasons
-#     print("Season "+str(season_num)+" loading")
-#     next_season(season_num)
+    for i in range(0,len(match_group_stats)-1):
+        game_date=game_dates[i].th.span.text.strip()
+        match_stats = match_group_stats[i]
+        home_teams=match_stats.find_all("td", class_="table-home")
+        away_teams=match_stats.find_all("td", class_="table-away")
+        results_teams=match_stats.find_all("td", class_="result-neutral")
+        for i in range(0,len(home_teams)-1):
+            with open(DB_KHL, 'a') as a:
+                a.write(game_date[4:]+","+home_teams[i].text+","+away_teams[i].text+","+results_teams[i].text+","+str(sum(map(int,re.sub("\D","",results_teams[i].text))))+"\n")
+                #print(game_date[4:]+","+home_teams[i].text+","+results_teams[i].text+","+away_teams[i].text)
+
+    next_page(page_num)
+
+# # #     next_season(season_num)
+#results loop will end here
 
 
 print("Complete")
