@@ -17,17 +17,17 @@ season_url = "http://www.sportstats.com"
 # sport="Australian Rules"
 
 #Set output location
-base_file = "C:\\Temp\\Results\\SportStats\\"
+base_file = "C:\\Temp\\Results\\SportStats-Output\\"
 DB_KHL=base_file+"DB_KHL_2018.csv"
 
 #Initialise file
 with open(DB_KHL,'w') as f:
-    f.write("Date,Home Team, Away Team,\n")
+    f.write("Date,Home Team,Away Team\n")
 
 #function to change pages
 def next_page(page_number):
     #Move to next page
-    print("In page function - loading " +page_links[page_number].text.strip())
+    print("In page function - loading " +str(page_number))
     driver.find_element_by_class_name("table-paging").find_elements_by_tag_name('a')[page_number].click() 
     time.sleep(3)
     return
@@ -60,31 +60,58 @@ season_links=soup.find("div",class_="season stages").find_all("a")
 
 #results loop would start here
 
+#page loop
+for page_num in range (1, page_link_total):
+#for page_num in range (1, 2):
+    next_page(page_num)
+
+#Loop for pages
+page_soup=BeautifulSoup(driver.page_source, 'lxml')
+matches_soup=page_soup.find("div",class_="tableShadow")
+print("Page " + str(page_num) + " loaded")
+game_dates = matches_soup.find_all("tr",class_="table-league-header")
+match_group_stats = matches_soup.find_all("tbody")
+
+for i in range(0,len(match_group_stats)):
+    game_date=game_dates[i].th.span.text.strip()
+    match_stats = match_group_stats[i]
+    home_teams=match_stats.find_all("td", class_="table-home")
+    away_teams=match_stats.find_all("td", class_="table-away")
+    #results_teams=match_stats.find_all("td", class_="result-neutral")
+    for x in range(0,len(home_teams)):
+        with open(DB_KHL, 'a') as a:
+            a.write(game_date[4:]+","+home_teams[x].text+","+away_teams[x].text+"\n")
+            #print(game_date[4:]+","+home_teams[i].text+","+results_teams[i].text+","+away_teams[i].text)
+
+
+
 # # # #season loop
 # # # for season_num in range(1, season_link_total):
 # # #     #loop for seasons
 # # #     print("Season "+str(season_num)+" loading")
 
-#page loop
-for page_num in range (1, page_link_total):
-#for page_num in range (1, 2):
-    #Loop for pages
-    print("Page " + str(page_num) + " loaded")
-    game_dates = match_soup.find_all("tr",class_="table-league-header")
-    match_group_stats = match_soup.find_all("tbody")
+# #page loop
+# for page_num in range (1, page_link_total):
+# #for page_num in range (1, 2):
+#     #Loop for pages
+#     page_soup=BeautifulSoup(driver.page_source, 'lxml')
+#     matches_soup=page_soup.find("div",class_="tableShadow")
+#     print("Page " + str(page_num) + " loaded")
+#     game_dates = matches_soup.find_all("tr",class_="table-league-header")
+#     match_group_stats = matches_soup.find_all("tbody")
 
-    for i in range(0,len(match_group_stats)-1):
-        game_date=game_dates[i].th.span.text.strip()
-        match_stats = match_group_stats[i]
-        home_teams=match_stats.find_all("td", class_="table-home")
-        away_teams=match_stats.find_all("td", class_="table-away")
-        #results_teams=match_stats.find_all("td", class_="result-neutral")
-        for i in range(0,len(home_teams)-1):
-            with open(DB_KHL, 'a') as a:
-                a.write(game_date[4:]+","+home_teams[i].text+","+away_teams[i].text+"\n")
-                #print(game_date[4:]+","+home_teams[i].text+","+results_teams[i].text+","+away_teams[i].text)
+#     for i in range(0,len(match_group_stats)):
+#         game_date=game_dates[i].th.span.text.strip()
+#         match_stats = match_group_stats[i]
+#         home_teams=match_stats.find_all("td", class_="table-home")
+#         away_teams=match_stats.find_all("td", class_="table-away")
+#         #results_teams=match_stats.find_all("td", class_="result-neutral")
+#         for x in range(0,len(home_teams)):
+#             with open(DB_KHL, 'a') as a:
+#                 a.write(game_date[4:]+","+home_teams[x].text+","+away_teams[x].text+"\n")
+#                 #print(game_date[4:]+","+home_teams[i].text+","+results_teams[i].text+","+away_teams[i].text)
 
-    next_page(page_num)
+#     next_page(page_num)
 
 # # #     next_season(season_num)
 #results loop will end here
