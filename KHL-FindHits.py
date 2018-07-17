@@ -1,93 +1,82 @@
 import csv
-from selenium import webdriver
-from bs4 import BeautifulSoup,Comment
 import time 
 import re
 
-from selenium.common.exceptions import TimeoutException
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import Select
-from selenium.webdriver.common.keys import Keys
-
-#Set website base url
-base_url = "http://www.sportstats.com/hockey/russia/khl/upcoming-matches/"
-season_url = "http://www.sportstats.com"
-# sport="Australian Rules"
+def average_stats(my_stats):
+    answer = 0
+    try:
+        #sum(map(int,re.sub(';','',re.sub('[A-Z]','0',my_stats)).split("-")))/len(re.sub(';','',re.sub('[A-Z]','0',my_stats)).split("-"))"
+        #test=';5-9-3-4-3'
+        #test[:5]
+        #sum(map(int,re.sub(';','',re.sub('[A-Z]','0',test)).split("-")))/len(re.sub(';','',re.sub('[A-Z]','0',test)).split("-"))
+        answer=sum(map(int,re.sub(';','',re.sub('[A-Z]','0',my_stats))[:-1].split("-")))/len(re.sub(';','',re.sub('[A-Z]','0',my_stats))[:-1].split("-"))
+    except ValueError:
+        answer=0
+    return str(answer)
 
 #Set output location
-base_file = "C:\\Temp\\Results\\SportStats\\"
-DB_KHL=base_file+"DB_KHL_2018.csv"
+base_file = "C:\\Temp\\Results\\SportStats-Output\\"
+KHL=base_file+"KHL\\Review-test.csv"
+
+#Inputs
+DB_KHL =  base_file+"DB_KHL-test.csv"
+KHL_Week= base_file+"DB_KHL_Week-test.csv"
 
 #Initialise file
-with open(DB_KHL,'w') as f:
-    f.write("Date,Home Team, Away Team,\n")
+with open(KHL,'w') as t:
+    t.write("Date,Home Team, Away Team,Exact Match Up,EMU-Average,Reverse Match Up, RMU-Average,Home Recent, HR-Average, Away Recent, AR-Average,\n")
 
-#function to change pages
-def next_page(page_number):
-    #Move to next page
-    print("In page function - loading " +page_links[page_number].text.strip())
-    driver.find_element_by_class_name("table-paging").find_elements_by_tag_name('a')[page_number].click() 
-    time.sleep(3)
-    return
+#Opens Days racing
+with open(KHL_Week,newline='') as f:
+    reader = csv.reader(f)
 
-def next_season(season_number):
-    #Move to next page
-    print("In season function - loading " + season_links[season_number].text.strip())
-    season_link=season_links[season_number].get('href')
-    driver.get(season_url+season_link)
-    time.sleep(3)
-    driver.find_element_by_link_text("Main").click()
-    time.sleep(3)
-    return
+    #Skip first row
+    next(reader)
+    for row in reader:
+        #Initialise lists
+        game_match=[]
+        r_game_match=[]
+        home_form=[]
+        away_form=[]
+        #Open database
+        with open(DB_KHL, newline = '')as p:
+            db_reader = csv.reader(p)
+            #Skip header
+            next(db_reader)
+            #Parse through full database
+            for db_row in db_reader:   
+                if row[1]==db_row[1]:
+                    home_form.append(db_row[4])
+                if row[2]==db_row[2]:
+                    away_form.append(db_row[4])
+                if row[1]==db_row[1] and row[2]==db_row[2]:
+                    game_match.append(db_row[4])
+                if row[2]==db_row[1] and row[1]==db_row[2]:
+                    r_game_match.append(db_row[4])
+        matchup_write=";"
+        r_matchup_write=";"
+        home_form_write=";"
+        away_form_write=";"
+        match_avg = None
+        r_match_avg = None
+        home_avg = None
+        away_avg = None
+        delimiter = "-"
+        for hf in home_form[:5]:
+            home_form_write += hf+delimiter 
+        home_avg = average_stats(home_form_write)
+        for af in away_form[:5]:
+            away_form_write += af+delimiter 
+        away_avg=average_stats(away_form_write)
+        for gm in game_match[:5]:
+            matchup_write += gm+delimiter 
+        match_avg=average_stats(matchup_write)
+        for rm in r_game_match[:5]:
+            r_matchup_write += rm+delimiter 
+        r_match_avg=average_stats(r_matchup_write)
 
-#load browser driver 
-driver = webdriver.Chrome()
-driver.get(base_url)
-# driver.find_element_by_link_text("Results").click()
-# time.sleep(3)
-# driver.find_element_by_link_text("Main").click()
-# time.sleep(3)
-
-soup=BeautifulSoup(driver.page_source, 'lxml')
-match_soup=soup.find("div",class_="tableShadow")
-#Total number of pages and seasons
-page_link_total=len(driver.find_element_by_class_name("table-paging").find_elements_by_tag_name('a') )
-season_link_total=len(driver.find_element_by_xpath("//div[@class='season stages']").find_elements_by_tag_name('a'))
-page_links=soup.find("div",class_="table-paging").find_all("a")
-season_links=soup.find("div",class_="season stages").find_all("a")
-
-#results loop would start here
-
-# # # #season loop
-# # # for season_num in range(1, season_link_total):
-# # #     #loop for seasons
-# # #     print("Season "+str(season_num)+" loading")
-
-#page loop
-for page_num in range (1, page_link_total):
-#for page_num in range (1, 2):
-    #Loop for pages
-    print("Page " + str(page_num) + " loaded")
-    game_dates = match_soup.find_all("tr",class_="table-league-header")
-    match_group_stats = match_soup.find_all("tbody")
-
-    for i in range(0,len(match_group_stats)-1):
-        game_date=game_dates[i].th.span.text.strip()
-        match_stats = match_group_stats[i]
-        home_teams=match_stats.find_all("td", class_="table-home")
-        away_teams=match_stats.find_all("td", class_="table-away")
-        #results_teams=match_stats.find_all("td", class_="result-neutral")
-        for i in range(0,len(home_teams)-1):
-            with open(DB_KHL, 'a') as a:
-                a.write(game_date[4:]+","+home_teams[i].text+","+away_teams[i].text+"\n")
-                #print(game_date[4:]+","+home_teams[i].text+","+results_teams[i].text+","+away_teams[i].text)
-
-    next_page(page_num)
-
-# # #     next_season(season_num)
-#results loop will end here
-
-
+        with open(KHL,'a') as a:
+            #t.write("Date,Home Team, Away Team,Exact Match Up,EMU-Average,Reverse Match Up, RMU-Average,Home Recent, HR-Average, Away Recent, AR-Average,\n")
+            a.write(row[0]+","+row[1]+","+row[2]+","+matchup_write[:-1]+","+match_avg+","+r_matchup_write[:-1]+","+r_match_avg+","+home_form_write[:-1]+","+home_avg+","+away_form_write[:-1]+","+away_avg+"\n")
 print("Complete")
+    
